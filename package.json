@@ -1,0 +1,10 @@
+{
+  "name": "spreadsheet-scheduler",
+  "version": "0.1.0",
+  "main": "index.js",
+  "author": "Hibikine Kage <goodsmile314159@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@google/clasp": "^2.2.1"
+  }
+}
