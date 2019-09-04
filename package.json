@@ -5,6 +5,7 @@
   "author": "Hibikine Kage <goodsmile314159@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@google/clasp": "^2.2.1"
+    "@google/clasp": "^2.2.1",
+    "@types/google-apps-script": "^0.0.58"
   }
 }
