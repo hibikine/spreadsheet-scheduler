@@ -218,18 +218,6 @@ function register(schedules: Schedule[]) {
   });
 }
 
-function getSchedules(calendarIds: string[]) {
-  const today = new Date();
-  const nextYear = new Date();
-  nextYear.setFullYear(today.getFullYear() + 1);
-  const events = CalendarApp.getEvents(today, nextYear).filter(
-    v =>
-      calendarIds.includes(v.getOriginalCalendarId()) && !v.isRecurringEvent()
-  );
-  console.log(events.map(v => v.getTitle()));
-  return events;
-}
-
 export function onOpen() {
   SpreadsheetApp.getActiveSpreadsheet().addMenu('カレンダー連携', [
     { name: '更新', functionName: 'update' },
