@@ -59,6 +59,89 @@ const calendarColumn = 'B';
 const startDateColumn = 'C';
 const endDateColumn = 'D';
 const idColumn = 'E';
+type Column = {
+  titleColumn: string;
+  calendarColumn: string;
+  startDateColumn: string;
+  endDateColumn: string;
+  idColumn: string;
+  allDayColumn: string;
+};
+const columnTitles: Column = {
+  titleColumn: '名前',
+  calendarColumn: '種類',
+  startDateColumn: '開始日時',
+  endDateColumn: '終了日時',
+  idColumn: 'ID',
+  allDayColumn: '終日',
+};
+let column: Column = {
+  titleColumn,
+  calendarColumn,
+  startDateColumn,
+  endDateColumn,
+  idColumn,
+  allDayColumn: 'F',
+};
+function getColumnFromIndex(index: number) {
+  var alphabet = [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+    'K',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'Q',
+    'R',
+    'S',
+    'T',
+    'U',
+    'V',
+    'W',
+    'X',
+    'Y',
+    'Z',
+  ];
+  var column = '';
+  while (index > 0) {
+    var digit = (index - 1) % alphabet.length;
+    column = alphabet[digit] + column;
+    index = (index - 1 - digit) / alphabet.length;
+  }
+  return column;
+}
+
+function updateColumn() {
+  const columnNames = getScheduleSheet()
+    .getRange('1:1')
+    .getValues()[0];
+  const updatedColumnName = Object.keys(column).map(v => {
+    for (let i = 0; i < columnNames.length; i++) {
+      if (columnNames[i] === v) {
+        return getColumnFromIndex(i);
+      }
+    }
+    return null;
+  });
+  if (updatedColumnName.every(v => v != null)) {
+    const updatedColumn: any = {};
+    Object.keys(column).forEach(
+      (k, i) => (updatedColumn[k] = updatedColumnName[i])
+    );
+
+    column = updatedColumn;
+  }
+}
 
 let calendarsCache:
   | GoogleAppsScript.Calendar.Schema.CalendarListEntry[]
@@ -173,6 +256,7 @@ function addDateValidate() {
 }
 
 export function update() {
+  updateColumn();
   addCalendarValidate();
   addDateValidate();
   const schedules = getSpreadsheetSchedules();
