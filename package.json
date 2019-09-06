@@ -7,5 +7,8 @@
   "devDependencies": {
     "@google/clasp": "^2.2.1",
     "@types/google-apps-script": "^0.0.58"
+  },
+  "dependencies": {
+    "moment": "^2.24.0"
   }
 }

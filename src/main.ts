@@ -54,14 +54,86 @@ if (!Array.prototype.includes) {
     },
   });
 }
+const titleColumn = 'A';
 const calendarColumn = 'B';
-
 const startDateColumn = 'C';
 const endDateColumn = 'D';
+const idColumn = 'E';
 
 let calendarsCache:
   | GoogleAppsScript.Calendar.Schema.CalendarListEntry[]
   | null = null;
+
+function getScheduleSheet() {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+}
+
+function getLastRowNumber() {
+  const sheet = getScheduleSheet();
+  const lastRow = sheet.getLastRow();
+  const titles: string[][] = sheet
+    .getRange(`${titleColumn}2:${titleColumn}`)
+    .getValues();
+  for (let i = lastRow; i >= 0; i--) {
+    if (typeof titles[i][0] === 'string' && titles[i][0] !== '') {
+      console.log(i);
+      console.log(titles);
+      console.log(titles[i][0]);
+      console.log(titles.length);
+      return i + 2;
+    }
+  }
+  return null;
+}
+
+function getSpreadsheetSchedules(): Schedule[] {
+  const sheet = getScheduleSheet();
+  const rowNumber = getLastRowNumber();
+  if (rowNumber === null) {
+    return [];
+  }
+  const titles = sheet
+    .getRange(`${titleColumn}2:${titleColumn}${rowNumber}`)
+    .getValues();
+  const calendars = sheet
+    .getRange(`${calendarColumn}2:${calendarColumn}${rowNumber}`)
+    .getValues();
+  const startDates = sheet
+    .getRange(`${startDateColumn}2:${startDateColumn}${rowNumber}`)
+    .getValues();
+  const endDates = sheet
+    .getRange(`${endDateColumn}2:${endDateColumn}${rowNumber}`)
+    .getValues();
+  const ids = sheet
+    .getRange(`${idColumn}2:${idColumn}${rowNumber}`)
+    .getValues();
+  return titles
+    .map((title, i) => ({
+      line: i + 2,
+      title: title[0],
+      calendar: calendars[i][0],
+      startDate: startDates[i][0],
+      endDate: endDates[i][0],
+      id: ids[i][0],
+    }))
+    .filter(
+      v =>
+        Object.keys(v).every(
+          k => k === 'id' || (v[k] != null && v[k] !== '')
+        ) &&
+        (Moment.moment(v.endDate).isSame(Moment.moment()) ||
+          Moment.moment(v.endDate).isAfter(Moment.moment()))
+    );
+}
+
+type Schedule = {
+  line: string | number;
+  title: string;
+  calendar: string;
+  startDate: string;
+  endDate: string;
+  id: string;
+};
 function getCalendars() {
   if (calendarsCache !== null) {
     return calendarsCache;
@@ -81,9 +153,9 @@ function getCalendarNames() {
 
 function addCalendarValidate() {
   const calendarNames = getCalendarNames();
-  const sheet = SpreadsheetApp.getActiveSpreadsheet()
-    .getSheets()[0]
-    .getRange(`${calendarColumn}2:${calendarColumn}`);
+  const sheet = getScheduleSheet().getRange(
+    `${calendarColumn}2:${calendarColumn}`
+  );
   const rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(calendarNames)
     .build();
@@ -91,7 +163,7 @@ function addCalendarValidate() {
 }
 
 function addDateValidate() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  const sheet = getScheduleSheet();
   const rule = SpreadsheetApp.newDataValidation()
     .requireDate()
     .build();
@@ -100,14 +172,50 @@ function addDateValidate() {
     .setDataValidation(rule);
 }
 
-function update() {
+export function update() {
   addCalendarValidate();
   addDateValidate();
+  const schedules = getSpreadsheetSchedules();
+  const unregistered = schedules.filter(s => s.id === '' || s.id == null);
+  register(unregistered);
+  const registrated = schedules.filter(
+    s => s.id !== '' && typeof s.id === 'string'
+  );
+  updateSchedule(registrated);
 }
-
-function getSchedulesTester() {
+function updateSchedule(schedules: Schedule[]) {
+  schedules.forEach(s => {
+    const event = CalendarApp.getEventById(s.id);
+    if (event.getTitle() !== s.title) {
+      event.setTitle(s.title);
+    }
+    if (
+      Moment.moment(event.getStartTime()).isSame(Moment.moment(s.startDate)) ||
+      Moment.moment(event.getEndTime()).isSame(Moment.moment(s.endDate))
+    ) {
+      event.setTime(
+        Moment.moment(s.startDate).toDate(),
+        Moment.moment(s.endDate).toDate()
+      );
+    }
+  });
+}
+function register(schedules: Schedule[]) {
   const calendars = getCalendars();
-  getSchedules(calendars.map(c => c.id));
+  const calendarNames = getCalendarNames();
+  schedules.forEach(s => {
+    for (let i = 0; i < calendarNames.length; i++) {
+      if (s.calendar === calendarNames[i]) {
+        const event = CalendarApp.getCalendarById(calendars[i].id).createEvent(
+          s.title,
+          Moment.moment(s.startDate).toDate(),
+          Moment.moment(s.endDate).toDate()
+        );
+        const sheet = getScheduleSheet();
+        sheet.getRange(`${idColumn}${s.line}`).setValue(event.getId());
+      }
+    }
+  });
 }
 
 function getSchedules(calendarIds: string[]) {
