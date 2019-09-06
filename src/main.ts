@@ -229,3 +229,9 @@ function getSchedules(calendarIds: string[]) {
   console.log(events.map(v => v.getTitle()));
   return events;
 }
+
+export function onOpen() {
+  SpreadsheetApp.getActiveSpreadsheet().addMenu('カレンダー連携', [
+    { name: '更新', functionName: 'update' },
+  ]);
+}
